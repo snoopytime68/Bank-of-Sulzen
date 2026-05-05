@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bank of Sulzen - Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+    <style>
+        :root {
+            color-scheme: dark;
+            font-family: Inter, system-ui, sans-serif;
+            background: #090b10;
+            color: #e8f9e1;
+            --surface: #11161f;
+            --surface-strong: #182034;
+            --accent: #64ffda;
+            --border: rgba(100, 255, 218, 0.18);
+            --muted: #8fa3b3;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            padding: 32px;
+            background: radial-gradient(circle at top, rgba(100, 255, 218, 0.05), transparent 35%),
+                        linear-gradient(180deg, #05070d 0%, #090b10 100%);
+        }
+
+        .page {
+            max-width: 1080px;
+            margin: 0 auto;
+            display: grid;
+            gap: 20px;
+        }
+
+        .card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 24px;
+            padding: 26px;
+            box-shadow: 0 20px 80px rgba(0, 0, 0, 0.24);
+        }
+
+        .top-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+
+        .top-row h1,
+        .top-row h2 { margin: 0; }
+
+        .price-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-bottom: 22px;
+        }
+
+        .price-box,
+        .balance-item,
+        .trade-panel {
+            border-radius: 18px;
+            background: rgba(255,255,255,0.02);
+            border: 1px solid rgba(255,255,255,0.06);
+            padding: 18px;
+        }
+
+        .price-box span,
+        .balance-item span {
+            display: block;
+            color: var(--muted);
+            margin-bottom: 10px;
+            font-size: 0.95rem;
+        }
+
+        .price-box strong,
+        .balance-item strong {
+            display: block;
+            font-size: 1.75rem;
+            color: #bbffbb;
+        }
+
+        .chart-scroll {
+            overflow-x: auto;
+        }
+
+        .chart-wrapper {
+            position: relative;
+            min-height: 240px;
+            max-height: 360px;
+            width: 100%;
+        }
+
+        .chart-wrapper canvas {
+            height: 100% !important;
+            display: block;
+        }
+
+        .balances {
+            display: grid;
+            gap: 16px;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            margin-top: 18px;
+        }
+
+        .trade-panel {
+            display: grid;
+            gap: 16px;
+        }
+
+        .trade-buttons {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 12px;
+        }
+
+        .trade-conversion {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(200px, 1fr));
+            gap: 18px;
+            margin-bottom: 14px;
+        }
+
+        .conversion-column {
+            display: grid;
+            gap: 12px;
+        }
+
+        input,
+        button {
+            width: 100%;
+            border-radius: 14px;
+            border: 1px solid var(--border);
+            background: rgba(255,255,255,0.03);
+            color: #f8fff8;
+            padding: 14px 16px;
+            font-size: 1rem;
+            transition: border-color 180ms ease, background 180ms ease;
+        }
+
+        button {
+            cursor: pointer;
+            font-weight: 600;
+            background: linear-gradient(135deg, rgba(100,255,218,.17), rgba(100,255,218,.08));
+            color: #d3ffeb;
+        }
+
+        button.secondary {
+            background: #181f2f;
+            color: var(--muted);
+        }
+
+        button:hover,
+        input:focus,
+        button:focus {
+            border-color: var(--accent);
+            outline: none;
+            box-shadow: 0 0 0 4px rgba(100,255,218,0.14);
+        }
+
+        .leader-row {
+            display: grid;
+            grid-template-columns: 1.2rem 1fr auto;
+            gap: 10px;
+            align-items: center;
+            padding: 12px 14px;
+            border-radius: 16px;
+            background: rgba(255,255,255,0.02);
+            border: 1px solid rgba(255,255,255,0.05);
+            margin-bottom: 10px;
+        }
+
+        .leader-row .rank {
+            color: #7ff4b4;
+            font-weight: 700;
+        }
+
+        .leader-row .name {
+            color: #e7f9e9;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .leader-row .value {
+            color: #b8ffe1;
+            text-align: right;
+        }
+
+        .helper,
+        .note {
+            color: var(--muted);
+            font-size: 0.95rem;
+            line-height: 1.6;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+    </style>
+</head>
+<body data-page="dashboard">
+    <div class="page">
+        <section class="card top-row">
+            <div>
+                <h1 id="welcome-msg">Your Vault</h1>
+                <p class="note" id="account-info">Manage your fake crypto and climb the leaderboard.</p>
+            </div>
+            <button class="secondary" onclick="logout()">Logout</button>
+        </section>
+
+        <section class="card">
+            <div class="price-grid">
+                <div class="price-box">
+                    <span>ETH / USD</span>
+                    <strong id="eth-price">$--.--</strong>
+                </div>
+                <div class="price-box">
+                    <span>Portfolio Value</span>
+                    <strong id="portfolio-value">$0.00</strong>
+                </div>
+                <div class="price-box">
+                    <span>Last update</span>
+                    <strong id="last-update">--:--:--</strong>
+                </div>
+            </div>
+            <div class="chart-scroll">
+                <div class="chart-wrapper">
+                    <canvas id="ethChart"></canvas>
+                </div>
+            </div>
+        </section>
+
+        <section class="card">
+            <div class="balances">
+                <div class="balance-item">
+                    <span>Broken Balance</span>
+                    <strong id="broken-balance">0 BR</strong>
+                </div>
+                <div class="balance-item">
+                    <span>Brabills Holding</span>
+                    <strong id="brabills-balance">0 BB</strong>
+                </div>
+                <div class="balance-item">
+                    <span>Bardens Holding</span>
+                    <strong id="barden-balance">0 BD</strong>
+                </div>
+                <div class="balance-item">
+                    <span>Total Game Value</span>
+                    <strong id="total-value">$0.00</strong>
+                </div>
+            </div>
+        </section>
+
+        <section class="card">
+            <div class="trade-panel">
+                <h2>Convert Brokens ↔ Brabills</h2>
+                <div class="trade-conversion">
+                    <div class="conversion-column">
+                        <label for="convert-br-input">Brokens</label>
+                        <input id="convert-br-input" type="number" min="0" step="0.01" placeholder="0.00" oninput="updateBrToBbPreview()">
+                    </div>
+                    <div class="conversion-column">
+                        <label for="convert-bb-output">Brabills</label>
+                        <input id="convert-bb-output" type="number" readonly placeholder="0.00">
+                    </div>
+                </div>
+                <button onclick="convertBrToBb()">Convert BR → BB</button>
+                <div class="trade-conversion" style="margin-top:20px;">
+                    <div class="conversion-column">
+                        <label for="convert-bb-input">Brabills</label>
+                        <input id="convert-bb-input" type="number" min="0" step="0.01" placeholder="0.00" oninput="updateBbToBrPreview()">
+                    </div>
+                    <div class="conversion-column">
+                        <label for="convert-br-output">Brokens</label>
+                        <input id="convert-br-output" type="number" readonly placeholder="0.00">
+                    </div>
+                </div>
+                <button class="secondary" onclick="convertBbToBr()">Convert BB → BR</button>
+                <div class="note">Enter the amount you want to convert on the left and see the result on the right using the live ETH price.</div>
+            </div>
+
+            <div class="trade-panel">
+                <label for="trade-amount-barden">Trade amount (BD)</label>
+                <input id="trade-amount-barden" type="number" min="0" step="1" placeholder="0">
+                <div class="trade-buttons">
+                    <button onclick="buyBarden()">Buy Barden</button>
+                    <button class="secondary" onclick="sellBarden()">Sell Barden</button>
+                </div>
+                <div class="note">Buy Bardens at a fixed price of <strong id="barden-price">10 BR</strong> each. Gold bar value is added to your total game value.</div>
+            </div>
+        </section>
+
+        <section class="card">
+            <h2>Leaderboard</h2>
+            <div class="note">Players ranked by game value.</div>
+            <div id="leaderboard"></div>
+        </section>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

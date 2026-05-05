@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bank of Sulzen</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        :root {
+            color-scheme: dark;
+            font-family: Inter, system-ui, sans-serif;
+            background: #090b10;
+            color: #e8f9e1;
+            --surface: #11161f;
+            --surface-strong: #182034;
+            --accent: #64ffda;
+            --border: rgba(100, 255, 218, 0.18);
+            --muted: #8fa3b3;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            padding: 32px;
+            background: radial-gradient(circle at top, rgba(100, 255, 218, 0.05), transparent 35%),
+                        linear-gradient(180deg, #05070d 0%, #090b10 100%);
+        }
+
+        .page {
+            max-width: 600px;
+            margin: 0 auto;
+            display: grid;
+            gap: 20px;
+        }
+
+        .card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 24px;
+            padding: 26px;
+            box-shadow: 0 20px 80px rgba(0, 0, 0, 0.24);
+        }
+
+        h1 { margin: 0 0 10px; }
+
+        p {
+            margin: 0;
+            color: var(--muted);
+            line-height: 1.6;
+        }
+
+        input,
+        button {
+            width: 100%;
+            border-radius: 14px;
+            border: 1px solid var(--border);
+            background: rgba(255,255,255,0.03);
+            color: #f8fff8;
+            padding: 14px 16px;
+            font-size: 1rem;
+            transition: border-color 180ms ease, background 180ms ease;
+        }
+
+        button {
+            cursor: pointer;
+            font-weight: 600;
+            background: linear-gradient(135deg, rgba(100,255,218,.17), rgba(100,255,218,.08));
+            color: #d3ffeb;
+        }
+
+        button:hover,
+        input:focus {
+            border-color: var(--accent);
+            outline: none;
+            box-shadow: 0 0 0 4px rgba(100,255,218,0.14);
+        }
+
+        .helper {
+            margin-top: 10px;
+            color: var(--muted);
+            font-size: 0.95rem;
+            line-height: 1.6;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+    </style>
+</head>
+<body data-page="login">
+    <div class="page">
+        <section class="card">
+            <h1>BANK OF SULZEN</h1>
+            <p>Enter your vault to trade fake crypto and grow your in-game portfolio. Login or register to start your own dashboard.</p>
+        </section>
+
+        <section class="card" id="login-card">
+            <h2>Login or Register</h2>
+            <div style="display:grid; gap: 14px; margin-top: 20px;">
+                <input id="username-input" type="text" placeholder="Username">
+                <input id="password-input" type="password" placeholder="Password">
+                <button onclick="login()">Enter Vault</button>
+                <div class="helper">New account? Enter a username and password to create a free profile with 15 BR.</div>
+            </div>
+        </section>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
